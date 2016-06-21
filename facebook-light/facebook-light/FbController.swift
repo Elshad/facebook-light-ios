@@ -9,7 +9,10 @@
 import UIKit
 import WebKit
 
-class FbController: UIViewController, WKNavigationDelegate {
+class FbController: UIViewController, WKNavigationDelegate, WKUIDelegate, UIGestureRecognizerDelegate {
+    
+    var siteUrlString = "https://m.facebook.com"
+    var isShowLoading = true
     
     let editUrl = UITextField()
     var webView = WKWebView()
@@ -30,7 +33,7 @@ class FbController: UIViewController, WKNavigationDelegate {
         super.loadView()
         
         let jScript = "" // "document.body.style.backgroundColor = 'red';"
-        let wkUScript = WKUserScript(source: jScript, injectionTime: WKUserScriptInjectionTime.AtDocumentEnd, forMainFrameOnly: true)
+        let wkUScript = WKUserScript(source: jScript, injectionTime: WKUserScriptInjectionTime.AtDocumentEnd, forMainFrameOnly: false)
         let wkUController = WKUserContentController()
         wkUController.addUserScript(wkUScript)
         let wkWebConfig = WKWebViewConfiguration();
@@ -42,13 +45,18 @@ class FbController: UIViewController, WKNavigationDelegate {
         
         self.view.addSubview(webView)
         webView.navigationDelegate = self
-        //webView.backgroundColor = UIColor.blackColor()
-        webView.loadRequest(NSURLRequest(URL: NSURL(string: "https://m.facebook.com")!))
+        webView.UIDelegate = self
+        //webView.backgroundColor = UIColor(red: 93/255, green: 164/255, blue: 215/255, alpha: 1)
+        webView.loadRequest(NSURLRequest(URL: NSURL(string: self.siteUrlString)!))
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = UIColor(red: 93/255, green: 164/255, blue: 215/255, alpha: 1)
+        self.automaticallyAdjustsScrollViewInsets = false
+        
+        self.navigationController?.setNavigationBarHidden(true, animated: false)
+        self.navigationController?.interactivePopGestureRecognizer?.delegate = self
         
         self.view.addSubview(editUrl)
         editUrl.textColor = UIColor.whiteColor()
@@ -67,8 +75,9 @@ class FbController: UIViewController, WKNavigationDelegate {
         
         self.view.addSubview(loading)
         loading.text = "Loading..."
+        loading.font = UIFont.boldSystemFontOfSize(18)
         loading.textAlignment = .Center
-        loading.backgroundColor = UIColor.brownColor().colorWithAlphaComponent(0.5)
+        loading.backgroundColor = UIColor(red: 93/255, green: 164/255, blue: 215/255, alpha: 1).colorWithAlphaComponent(0.5)
         loading.hidden = true
         loading.userInteractionEnabled = true
     }
@@ -102,13 +111,17 @@ class FbController: UIViewController, WKNavigationDelegate {
     //-----------------------
     func webView(webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         NSLog("WkVIEW_DID_START_PROVISIONAL => begin")
-        loading.hidden = false
+        if isShowLoading {
+            loading.hidden = false
+        }
     }
     
     //-----------------------
     func webView(webView: WKWebView, didFinishNavigation navigation: WKNavigation!) {
         NSLog("WkVIEW_DID_FINISHED => begin")
-        loading.hidden = true
+        if isShowLoading {
+            loading.hidden = true
+        }
         NSLog("WkVIEW_DID_FINISHED => end")
         editUrl.text = webView.backForwardList.currentItem?.initialURL.absoluteString
         print(webView.backForwardList.currentItem?.initialURL.absoluteString)
@@ -122,18 +135,26 @@ class FbController: UIViewController, WKNavigationDelegate {
     //-----------------------
     func webView(webView: WKWebView, didFailNavigation navigation: WKNavigation!, withError error: NSError) {
         NSLog("WkVIEW_DID_FAIL => begin")
-        loading.hidden = true
+        if isShowLoading {
+            loading.hidden = true
+        }
         
         self.webView.backgroundColor = UIColor(red:0.11, green:0.13, blue:0.19, alpha:1)
         self.webView.scrollView.backgroundColor = UIColor(red:0.11, green:0.13, blue:0.19, alpha:1)
     }
     
+    func webView(webView: WKWebView, createWebViewWithConfiguration configuration: WKWebViewConfiguration, forNavigationAction navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if navigationAction.targetFrame == nil {
+            let childController = FbController()
+            childController.siteUrlString = (navigationAction.request.URL ?? NSURL()).absoluteString
+            childController.isShowLoading = false
+            self.navigationController?.pushViewController(childController, animated: true)
+        }
+        return nil
+    }
     
     
-    
-    
-    
-    
+
     
     
 
